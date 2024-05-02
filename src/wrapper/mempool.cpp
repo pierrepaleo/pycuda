@@ -215,7 +215,10 @@ namespace
         alloc->ptr(), flags, /*obj*/NULL));
 
     py::handle<> alloc_py(handle_from_new_ptr(alloc.release()));
-    PyArray_BASE(result.get()) = alloc_py.get();
+    // PyArray_BASE(result.get()) = alloc_py.get();
+    PyArrayObject* result_h = (PyArrayObject *) result.get();
+    PyObject* alloc_h = (PyObject*) alloc_py.get();
+    PyArray_SetBaseObject(result_h, alloc_h);
     Py_INCREF(alloc_py.get());
 
     return result;

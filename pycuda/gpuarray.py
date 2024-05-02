@@ -19,6 +19,7 @@ from functools import reduce
 import numbers
 
 import copyreg
+_NUMPY_PRE_2 = np.__version__.startswith("1.")
 
 
 def _get_common_dtype(obj1, obj2):

@@ -597,7 +597,11 @@ namespace
         alloc->data(), ary_flags, /*obj*/NULL));
 
     py::handle<> alloc_py(handle_from_new_ptr(alloc.release()));
-    PyArray_BASE(result.get()) = alloc_py.get();
+    // PyArray_BASE(result.get()) = alloc_py.get();
+    PyArrayObject* result_h = (PyArrayObject *) result.get();
+    PyObject* alloc_h = (PyObject*) alloc_py.get();
+    PyArray_SetBaseObject(result_h, alloc_h);
+
     Py_INCREF(alloc_py.get());
 
     return result;
@@ -606,19 +610,21 @@ namespace
 #if CUDAPP_CUDA_VERSION >= 4000
   py::handle<> register_host_memory(py::object ary, unsigned flags)
   {
-    if (!PyArray_Check(ary.ptr()))
+    PyArrayObject* ary_arr = (PyArrayObject *) ary.ptr();
+
+    if (!PyArray_Check(ary_arr))
       throw pycuda::error("register_host_memory", CUDA_ERROR_INVALID_VALUE,
           "ary argument is not a numpy array");
 
-    if (!PyArray_ISCONTIGUOUS(ary.ptr()))
+    if (!PyArray_ISCONTIGUOUS(ary_arr))
       throw pycuda::error("register_host_memory", CUDA_ERROR_INVALID_VALUE,
           "ary argument is not contiguous");
 
     std::unique_ptr<registered_host_memory> regmem(
         new registered_host_memory(
-          PyArray_DATA(ary.ptr()), PyArray_NBYTES(ary.ptr()), flags, ary));
+          PyArray_DATA(ary.ptr()), ary_arr, flags, ary));
 
-    PyObject *new_array_ptr = PyArray_FromInterface(ary.ptr());
+    PyObject *new_array_ptr = PyArray_FromInterface(ary_arr);
     if (new_array_ptr == Py_NotImplemented)
       throw pycuda::error("register_host_memory", CUDA_ERROR_INVALID_VALUE,
           "ary argument does not expose array interface");
