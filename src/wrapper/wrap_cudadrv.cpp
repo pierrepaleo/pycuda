@@ -10,7 +10,9 @@
 #include "wrap_helpers.hpp"
 #include <boost/python/stl_iterator.hpp>
 
-
+#if NPY_ABI_VERSION < 0x02000000
+  #define PyDataType_ELSIZE(descr) ((descr)->elsize)
+#endif
 
 
 #if CUDAPP_CUDA_VERSION < 1010
@@ -573,17 +575,17 @@ namespace
 
     std::unique_ptr<Allocation> alloc(
         new Allocation(
-          tp_descr->elsize*pycuda::size_from_dims(dims.size(), &dims.front()),
+          PyDataType_ELSIZE(tp_descr)*pycuda::size_from_dims(dims.size(), &dims.front()),
           par1)
         );
 
-    NPY_ORDER order = PyArray_CORDER;
+    NPY_ORDER order = NPY_CORDER;
     PyArray_OrderConverter(order_py.ptr(), &order);
 
     int ary_flags = 0;
-    if (order == PyArray_FORTRANORDER)
+    if (order == NPY_FORTRANORDER)
       ary_flags |= NPY_FARRAY;
-    else if (order == PyArray_CORDER)
+    else if (order == NPY_CORDER)
       ary_flags |= NPY_CARRAY;
     else
       throw pycuda::error("numpy_empty", CUDA_ERROR_INVALID_VALUE,
